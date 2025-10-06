@@ -2,5 +2,8 @@
     "files.associations": {
         "stdint.h": "c"
     },
-    "editor.rulers": [100]
+    "editor.rulers": [
+        100
+    ],
+    "makefile.configureOnOpen": false
 } 
