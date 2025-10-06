@@ -69,53 +69,115 @@
 `define INST_SH2ADD_UW 17'b0111011_0010000_100 // B Shift unsigend word left by 2 and add
 `define INST_SH3ADD_UW 17'b0111011_0010000_110 // B Shift unsigend word left by 3 and add
 
-`define INST_FADD_S    17'b1010011_0000000_000 // F Floating-point add single
-`define INST_FSUB_S    17'b1010011_0100000_000 // F Floating-point subtract single
-`define INST_FMUL_S    17'b1010011_0000001_000 // F Floating-point multiply single
-`define INST_FDIV_S    17'b1010011_0000101_000 // F Floating-point divide single
-`define INST_FSGNJ_S   17'b1010011_0000000_001 // F Floating-point sign injection single
-`define INST_FSGNJN_S  17'b1010011_0100000_001 // F Floating-point sign injection negated single
-`define INST_FSGNJX_S  17'b1010011_0010000_001 // F Floating-point sign injection XOR single
-`define INST_FMIN_S    17'b1010011_0000000_010 // F Floating-point minimum single
-`define INST_FMAX_S    17'b1010011_0000000_011 // F Floating-point maximum single
-`define INST_FMINU_S   17'b1010011_0000000_010 // F Floating-point minimum unordered single
-`define INST_FMAXU_S   17'b1010011_0000000_011 // F Floating-point maximum unordered single
-`define INST_FEQ_S     17'b1010011_0000000_100 // F Floating-point equal single
-`define INST_FLT_S     17'b1010011_0000000_101 // F Floating-point less than single
-`define INST_FLE_S     17'b1010011_0000000_110 // F Floating-point less than or equal single
-`define INST_FCLASS_S  17'b1010011_0000000_001 // F Floating-point classify single
+// ===================== OP-FP (.S single-precision) =====================
+// Layout reminder: opcode=1010011 (OP-FP)
+//   funct7 = {funct5[31:27], fmt[26:25]}  → for .S, fmt=00
+//   funct3 = rm for arithmetic (treat as don't-care), or sub-op selector for some ops.
+// --- Arithmetic: FADD.S ---
+// `define INST_FADD_S    17'b1010011_0000000_000 // WRONG: pins rm=000 (RNE) only; rm must be don't-care
+`define INST_FADD_S       17'b1010011_0000000_??? // FIX: funct7 ok (funct5=00000,fmt=00); allow any rm in funct3
+// --- Arithmetic: FSUB.S ---
+// `define INST_FSUB_S    17'b1010011_0100000_000 // WRONG: funct7=0100000 is not FSUB.S
+`define INST_FSUB_S       17'b1010011_0000100_??? // FIX: funct5=00001 → funct7=0000100 (fmt=00); rm=???
+// --- Arithmetic: FMUL.S ---
+// `define INST_FMUL_S    17'b1010011_0000001_000 // WRONG: funct7 should be 0001000 for FMUL.S
+`define INST_FMUL_S       17'b1010011_0001000_??? // FIX: funct5=00010 → funct7=0001000; rm=???
+// --- Arithmetic: FDIV.S ---
+// `define INST_FDIV_S    17'b1010011_0000101_000 // WRONG: funct7 should be 0001100 for FDIV.S
+`define INST_FDIV_S       17'b1010011_0001100_??? // FIX: funct5=00011 → funct7=0001100; rm=???
+// --- Sign inject group: FSGNJ*.S ---
+// `define INST_FSGNJ_S   17'b1010011_0000000_001 // WRONG: funct7 wrong; variant chosen by funct3
+`define INST_FSGNJ_S      17'b1010011_0010000_000 // FIX: funct5=00100 → funct7=0010000; funct3=000 (SGNJ)
+// `define INST_FSGNJN_S  17'b1010011_0100000_001 // WRONG: funct7 wrong
+`define INST_FSGNJN_S     17'b1010011_0010000_001 // FIX: same funct7; funct3=001 (SGNJN)
+// `define INST_FSGNJX_S  17'b1010011_0010000_001 // WRONG: funct3 should be 010 (XOR)
+`define INST_FSGNJX_S     17'b1010011_0010000_010 // FIX: same funct7; funct3=010 (SGNJX)
+// --- Min/Max: FMIN/FMAX.S ---
+// `define INST_FMIN_S    17'b1010011_0000000_010 // WRONG: funct7 wrong
+`define INST_FMIN_S       17'b1010011_0010100_000 // FIX: funct5=00101 → funct7=0010100; funct3=000 (MIN)
+// `define INST_FMAX_S    17'b1010011_0000000_011 // WRONG: funct7 wrong
+`define INST_FMAX_S       17'b1010011_0010100_001 // FIX: same funct7; funct3=001 (MAX)
+// --- Non-standard (remove): FMINU/FMAXU ---
+// `define INST_FMINU_S   17'b1010011_0000000_010 // WRONG/NON-STANDARD: no FMINU.S in base F; delete
+// `define INST_FMAXU_S   17'b1010011_0000000_011 // WRONG/NON-STANDARD: no FMAXU.S in base F; delete
+// --- Comparisons: FEQ/FLT/FLE.S ---
+// `define INST_FEQ_S     17'b1010011_0000000_100 // WRONG: funct7/funct3 wrong for FEQ.S
+`define INST_FEQ_S        17'b1010011_1010000_010 // FIX: funct5=10100 → funct7=1010000; funct3=010 (EQ; rd is x-reg)
+// `define INST_FLT_S     17'b1010011_0000000_101 // WRONG: funct7/funct3 wrong for FLT.S
+`define INST_FLT_S        17'b1010011_1010000_001 // FIX: same funct7; funct3=001 (LT)
+// `define INST_FLE_S     17'b1010011_0000000_110 // WRONG: funct7/funct3 wrong for FLE.S
+`define INST_FLE_S        17'b1010011_1010000_000 // FIX: same funct7; funct3=000 (LE)
+// --- Classify: FCLASS.S (unary; rs2 must be 0) ---
+// `define INST_FCLASS_S  17'b1010011_0000000_001 // WRONG: funct7 wrong
+`define INST_FCLASS_S     17'b1010011_1110000_001 // FIX: funct5=11100 → funct7=1110000; funct3=001 (rs2=0 in full 32b)
 
-`define INST_FADD_D    17'b1010011_0000000_000 // D Floating-point add double
-`define INST_FSUB_D    17'b1010011_0100000_000 // D Floating-point subtract double
-`define INST_FMUL_D    17'b1010011_0000001_000 // D Floating-point multiply double
-`define INST_FDIV_D    17'b1010011_0000101_000 // D Floating-point divide double
-`define INST_FSGNJ_D   17'b1010011_0000000_001 // D Floating-point sign injection double
-`define INST_FSGNJN_D  17'b1010011_0100000_001 // D Floating-point sign injection negated double
-`define INST_FSGNJX_D  17'b1010011_0010000_001 // D Floating-point sign injection XOR double
-`define INST_FMIN_D    17'b1010011_0000000_010 // D Floating-point minimum double
-`define INST_FMAX_D    17'b1010011_0000000_011 // D Floating-point maximum double
-`define INST_FMINU_D   17'b1010011_0000000_010 // D Floating-point minimum unordered double
-`define INST_FMAXU_D   17'b1010011_0000000_011 // D Floating-point maximum unordered double
-`define INST_FEQ_D     17'b1010011_0000000_100 // D Floating-point equal double
-`define INST_FLT_D     17'b1010011_0000000_101 // D Floating-point less than double
-`define INST_FLE_D     17'b1010011_0000000_110 // D Floating-point less than or equal double
-`define INST_FCLASS_D  17'b1010011_0000000_001 // D Floating-point classify double
 
-`define INST_FADD_Q    17'b1010011_0000000_000 // Q Floating-point add quad
-`define INST_FSUB_Q    17'b1010011_0100000_000 // Q Floating-point subtract quad
-`define INST_FMUL_Q    17'b1010011_0000001_000 // Q Floating-point multiply quad
-`define INST_FDIV_Q    17'b1010011_0000101_000 // Q Floating-point divide quad
-`define INST_FSGNJ_Q   17'b1010011_0000000_001 // Q Floating-point sign injection quad
-`define INST_FSGNJN_Q  17'b1010011_0100000_001 // Q Floating-point sign injection negated quad
-`define INST_FSGNJX_Q  17'b1010011_0010000_001 // Q Floating-point sign injection XOR quad
-`define INST_FMIN_Q    17'b1010011_0000000_010 // Q Floating-point minimum quad
-`define INST_FMAX_Q    17'b1010011_0000000_011 // Q Floating-point maximum quad
-`define INST_FMINU_Q   17'b1010011_0000000_010 // Q Floating-point minimum unordered quad
-`define INST_FMAXU_Q   17'b1010011_0000000_011 // Q Floating-point maximum unordered quad
-`define INST_FEQ_Q     17'b1010011_0000000_100 // Q Floating-point equal quad
-`define INST_FLT_Q     17'b1010011_0000000_101 // Q Floating-point less than quad
-`define INST_FLE_Q     17'b1010011_0000000_110 // Q Floating-point less than or equal quad
-`define INST_FCLASS_Q  17'b1010011_0000000_001 // Q Floating-point classify quad
+// ===================== OP-FP (.D double-precision) =====================
+// Layout: opcode=1010011, funct7={funct5[31:27],fmt[26:25]} with fmt=01 for .D; funct3=rm for arithmetic or sub-op for others.
+// `define INST_FADD_D    17'b1010011_0000000_000 // WRONG: pins rm=000 (RNE) only; also funct7 must end with fmt=01 for .D
+`define INST_FADD_D       17'b1010011_0000001_??? // FIX: funct5=00000 → funct7=0000001 (fmt=01); rm any
+// `define INST_FSUB_D    17'b1010011_0100000_000 // WRONG: funct7 wrong; should be funct5=00001 with fmt=01; rm must be don't-care
+`define INST_FSUB_D       17'b1010011_0000101_??? // FIX: funct7=0000101; rm any
+// `define INST_FMUL_D    17'b1010011_0000001_000 // WRONG: funct7 wrong; should be funct5=00010 with fmt=01; rm must be don't-care
+`define INST_FMUL_D       17'b1010011_0001001_??? // FIX: funct7=0001001; rm any
+// `define INST_FDIV_D    17'b1010011_0000101_000 // WRONG: funct7 wrong; should be funct5=00011 with fmt=01; rm must be don't-care
+`define INST_FDIV_D       17'b1010011_0001101_??? // FIX: funct7=0001101; rm any
+// `define INST_FSGNJ_D   17'b1010011_0000000_001 // WRONG: funct7 wrong; SGNJ group uses funct5=00100 and fmt=01; funct3 selects variant
+`define INST_FSGNJ_D      17'b1010011_0010001_000 // FIX: funct7=0010001; funct3=000 (SGNJ)
+// `define INST_FSGNJN_D  17'b1010011_0100000_001 // WRONG: funct7 wrong; variant via funct3
+`define INST_FSGNJN_D     17'b1010011_0010001_001 // FIX: funct3=001 (SGNJN)
+// `define INST_FSGNJX_D  17'b1010011_0010000_001 // WRONG: funct7 must end with fmt=01; funct3 should be 010
+`define INST_FSGNJX_D     17'b1010011_0010001_010 // FIX: funct7=0010001; funct3=010 (SGNJX)
+// `define INST_FMIN_D    17'b1010011_0000000_010 // WRONG: funct7 wrong; FMIN/MAX use funct5=00101 and fmt=01; funct3 selects MIN/MAX
+`define INST_FMIN_D       17'b1010011_0010101_000 // FIX: funct7=0010101; funct3=000 (MIN)
+// `define INST_FMAX_D    17'b1010011_0000000_011 // WRONG: funct7 wrong
+`define INST_FMAX_D       17'b1010011_0010101_001 // FIX: funct7=0010101; funct3=001 (MAX)
+// `define INST_FMINU_D   17'b1010011_0000000_010 // WRONG/NON-STANDARD: no FMINU.D in base D; delete
+// FIX: delete (non-standard)
+// `define INST_FMAXU_D   17'b1010011_0000000_011 // WRONG/NON-STANDARD: no FMAXU.D in base D; delete
+// FIX: delete (non-standard)
+// `define INST_FEQ_D     17'b1010011_0000000_100 // WRONG: compares use funct5=10100 with fmt=01; funct3 selects EQ/LT/LE
+`define INST_FEQ_D        17'b1010011_1010001_010 // FIX: funct7=1010001; funct3=010 (EQ; result in x-reg)
+// `define INST_FLT_D     17'b1010011_0000000_101 // WRONG: compares use funct5=10100 with fmt=01
+`define INST_FLT_D        17'b1010011_1010001_001 // FIX: funct3=001 (LT)
+// `define INST_FLE_D     17'b1010011_0000000_110 // WRONG: compares use funct5=10100 with fmt=01
+`define INST_FLE_D        17'b1010011_1010001_000 // FIX: funct3=000 (LE)
+// `define INST_FCLASS_D  17'b1010011_0000000_001 // WRONG: FCLASS uses funct5=11100 with fmt=01; funct3=001; rs2=0 (unary)
+`define INST_FCLASS_D     17'b1010011_1110001_001 // FIX: funct7=1110001; funct3=001 (note: rs2=0 in full 32b)
+
+
+// ===================== OP-FP (.Q quad-precision) =====================
+// Layout: opcode=1010011, funct7={funct5[31:27],fmt[26:25]} with fmt=11 for .Q; funct3=rm for arithmetic or sub-op for others.
+// `define INST_FADD_Q    17'b1010011_0000000_000 // WRONG: pins rm=000 (RNE) only; funct7 must end with fmt=11 for .Q
+`define INST_FADD_Q       17'b1010011_0000011_??? // FIX: funct5=00000 → funct7=0000011 (fmt=11); rm any
+// `define INST_FSUB_Q    17'b1010011_0100000_000 // WRONG: funct7 wrong; should be funct5=00001 with fmt=11; rm must be don't-care
+`define INST_FSUB_Q       17'b1010011_0000111_??? // FIX: funct7=0000111; rm any
+// `define INST_FMUL_Q    17'b1010011_0000001_000 // WRONG: funct7 wrong; should be funct5=00010 with fmt=11; rm must be don't-care
+`define INST_FMUL_Q       17'b1010011_0001011_??? // FIX: funct7=0001011; rm any
+// `define INST_FDIV_Q    17'b1010011_0000101_000 // WRONG: funct7 wrong; should be funct5=00011 with fmt=11; rm must be don't-care
+`define INST_FDIV_Q       17'b1010011_0001111_??? // FIX: funct7=0001111; rm any
+// `define INST_FSGNJ_Q   17'b1010011_0000000_001 // WRONG: funct7 wrong; SGNJ group uses funct5=00100 and fmt=11; funct3 selects variant
+`define INST_FSGNJ_Q      17'b1010011_0010011_000 // FIX: funct7=0010011; funct3=000 (SGNJ)
+// `define INST_FSGNJN_Q  17'b1010011_0100000_001 // WRONG: funct7 wrong; variant via funct3
+`define INST_FSGNJN_Q     17'b1010011_0010011_001 // FIX: funct3=001 (SGNJN)
+// `define INST_FSGNJX_Q  17'b1010011_0010000_001 // WRONG: funct7 must end with fmt=11; funct3 should be 010
+`define INST_FSGNJX_Q     17'b1010011_0010011_010 // FIX: funct7=0010011; funct3=010 (SGNJX)
+// `define INST_FMIN_Q    17'b1010011_0000000_010 // WRONG: funct7 wrong; FMIN/MAX use funct5=00101 and fmt=11; funct3 selects MIN/MAX
+`define INST_FMIN_Q       17'b1010011_0010111_000 // FIX: funct7=0010111; funct3=000 (MIN)
+// `define INST_FMAX_Q    17'b1010011_0000000_011 // WRONG: funct7 wrong
+`define INST_FMAX_Q       17'b1010011_0010111_001 // FIX: funct7=0010111; funct3=001 (MAX)
+// `define INST_FMINU_Q   17'b1010011_0000000_010 // WRONG/NON-STANDARD: no FMINU.Q in base Q; delete
+// FIX: delete (non-standard)
+// `define INST_FMAXU_Q   17'b1010011_0000000_011 // WRONG/NON-STANDARD: no FMAXU.Q in base Q; delete
+// FIX: delete (non-standard)
+// `define INST_FEQ_Q     17'b1010011_0000000_100 // WRONG: compares use funct5=10100 with fmt=11; funct3 selects EQ/LT/LE
+`define INST_FEQ_Q        17'b1010011_1010011_010 // FIX: funct7=1010011; funct3=010 (EQ; result in x-reg)
+// `define INST_FLT_Q     17'b1010011_0000000_101 // WRONG: compares use funct5=10100 with fmt=11
+`define INST_FLT_Q        17'b1010011_1010011_001 // FIX: funct3=001 (LT)
+// `define INST_FLE_Q     17'b1010011_0000000_110 // WRONG: compares use funct5=10100 with fmt=11
+`define INST_FLE_Q        17'b1010011_1010011_000 // FIX: funct3=000 (LE)
+// `define INST_FCLASS_Q  17'b1010011_0000000_001 // WRONG: FCLASS uses funct5=11100 with fmt=11; funct3=001; rs2=0 (unary)
+`define INST_FCLASS_Q     17'b1010011_1110011_001 // FIX: funct7=1110011; funct3=001 (note: rs2=0 in full 32b)
 
 /////////////////////////////////////
 /// I-Type Immediate Instricntions (opcode, funct3, IMM[31:19])
@@ -155,14 +217,19 @@
 `define INST_RORIW   22'b0011011_101_011000?????? // B Rotate right word (Immediate)          (31-35 = 0110000)
 `define INST_SLLIUW  22'b0011011_001_000010?????? // B Shift left unsigned word (Immediate)   (31-26 = 000010)
 
-`define INST_FLW     22'b0000011_010_???????????? // F Load floating-point word
-`define INST_FSW     22'b0100011_010_???????????? // F Store floating-point word
+// `define INST_FLW     22'b0000011_010_???????????? // WRONG: used integer LOAD opcode (0000011); FP loads use LOAD-FP opcode 0000111
+`define INST_FLW        22'b0000111_010_???????????? // FIX: FLW → opcode=0000111 (LOAD-FP), funct3=010 (word)
+// `define INST_FSW     22'b0100011_010_???????????? // WRONG: used integer STORE opcode (0100011); FP stores use STORE-FP opcode 0100111
+`define INST_FSW        22'b0100111_010_???????????? // FIX: FSW → opcode=0100111 (STORE-FP), funct3=010 (word)
+// `define INST_FLD     22'b0000011_011_???????????? // WRONG: integer LOAD opcode; must be LOAD-FP
+`define INST_FLD        22'b0000111_011_???????????? // FIX: FLD → opcode=0000111 (LOAD-FP), funct3=011 (doubleword)
+// `define INST_FSD     22'b0100011_011_???????????? // WRONG: integer STORE opcode; must be STORE-FP
+`define INST_FSD        22'b0100111_011_???????????? // FIX: FSD → opcode=0100111 (STORE-FP), funct3=011 (doubleword)
+// `define INST_FLQ     22'b0000011_100_???????????? // WRONG: integer LOAD opcode; must be LOAD-FP
+`define INST_FLQ        22'b0000111_100_???????????? // FIX: FLQ → opcode=0000111 (LOAD-FP), funct3=100 (quadword)
+// `define INST_FSQ     22'b0100011_100_???????????? // WRONG: integer STORE opcode; must be STORE-FP
+`define INST_FSQ        22'b0100111_100_???????????? // FIX: FSQ → opcode=0100111 (STORE-FP), funct3=100 (quadword)
 
-`define INST_FLD     22'b0000011_011_???????????? // D Load floating-point doubleword
-`define INST_FSD     22'b0100011_011_???????????? // D Store floating-point doubleword
-
-`define INST_FLQ     22'b0000011_100_???????????? // Q Load floating-point quadword
-`define INST_FSQ     22'b0100011_100_???????????? // Q Store floating-point quadword
 
 /////////////////////////////////////
 /// I-Type Branch (opcode, funct3)
@@ -203,11 +270,13 @@
 `define INST_FENCE     10'b0001111_000 // I Memory ordering fence
 `define INST_FENCEI    10'b0001111_001 // I Instruction fence
 
-`define INST_FENCE_F   10'b0001111_010 // F Floating-point fence
+// `define INST_FENCE_F   10'b0001111_010 // WRONG/NON-STANDARD: no FP-specific fence in RISC-V; delete (use standard FENCE 0001111_000)
+ // FIX: use `INST_FENCE` (memory fence) or `INST_FENCEI` (instruction fence) as appropriate
+// `define INST_FENCE_F_D 10'b0001111_010 // WRONG/NON-STANDARD: duplicate of non-existent FP fence; delete
+ // FIX: delete and rely on standard FENCE/FENCEI encodings already defined
+// `define INST_FENCE_F_Q 10'b0001111_011 // WRONG/NON-STANDARD: no FP-quad fence; delete
+ // FIX: delete and rely on standard FENCE/FENCEI encodings already defined
 
-`define INST_FENCE_F_D 10'b0001111_010 // D Floating-point fence
-
-`define INST_FENCE_F_Q 10'b0001111_011 // Q Floating-point fence for quad
 
 /////////////////////////////////////
 /// I-Type System (opcode, funct3, funct12)
@@ -225,30 +294,51 @@
 `define INST_CSRRW     22'b1110011_001_???????????? // CSR Atomic Read/Write CSR *
 `define INST_CSRRWI    22'b1110011_101_???????????? // CSR Atomic Read/Write CSR (Immediate) *
 
-`define INST_FCVT_W_S  22'b1110011_000_000000000001 // F Convert float to int word single
-`define INST_FCVT_WU_S 22'b1110011_000_000000000101 // F Convert float to unsigned int word single
-`define INST_FCVT_S_W  22'b1110011_000_000000001001 // F Convert int word to float single
-`define INST_FCVT_S_WU 22'b1110011_000_000000001101 // F Convert unsigned int word to float single
-`define INST_FMV_X_W   22'b1110011_000_000000010001 // F Move float to integer register
-`define INST_FMV_W_X   22'b1110011_000_000000010101 // F Move integer to float register
-`define INST_FMV_S_X   22'b1110011_000_000000010001 // F Move float to integer register
-`define INST_FMV_X_S   22'b1110011_000_000000010101 // F Move integer to float register
+// `define INST_FCVT_W_S  22'b1110011_000_000000000001 // WRONG: uses SYSTEM opcode (1110011). FCVT.* are OP-FP (1010011); funct5=11000, fmt=00 (.S), rm in funct3; rs2=00000 selects W
+`define INST_FCVT_W_S     17'b1010011_1100000_??? // FIX: FCVT.W.S → funct7=1100000 (funct5=11000,fmt=00), rm=???; NOTE: check rs2==00000 for W
+// `define INST_FCVT_WU_S 22'b1110011_000_000000000101 // WRONG: SYSTEM opcode; FCVT.WU.S is OP-FP; same funct7 as FCVT.W.S; rs2 selects WU
+`define INST_FCVT_WU_S    17'b1010011_1100000_??? // FIX: FCVT.WU.S → funct7=1100000, rm=???; NOTE: check rs2==00001 for WU
+// `define INST_FCVT_S_W  22'b1110011_000_000000001001 // WRONG: SYSTEM opcode; FCVT.S.W is OP-FP; funct5=11010, fmt=00 (.S); rm in funct3; rs2 selects W
+`define INST_FCVT_S_W     17'b1010011_1101000_??? // FIX: FCVT.S.W → funct7=1101000 (funct5=11010,fmt=00), rm=???; NOTE: check rs2==00000 for W
+// `define INST_FCVT_S_WU 22'b1110011_000_000000001101 // WRONG: SYSTEM opcode; same family as above; rs2 selects WU
+`define INST_FCVT_S_WU    17'b1010011_1101000_??? // FIX: FCVT.S.WU → funct7=1101000, rm=???; NOTE: check rs2==00001 for WU
+// `define INST_FMV_X_W   22'b1110011_000_000000010001 // WRONG: SYSTEM opcode; FMV.X.W is OP-FP; funct5=11100, fmt=00 (.S); unary (rs2=0); funct3=000
+`define INST_FMV_X_W      17'b1010011_1110000_000 // FIX: FMV.X.W → funct7=1110000 (funct5=11100,fmt=00), funct3=000; NOTE: check rs2==00000
+// `define INST_FMV_W_X   22'b1110011_000_000000010101 // WRONG: SYSTEM opcode; FMV.W.X is OP-FP; funct5=11110, fmt=00 (.S); unary (rs2=0); funct3=000
+`define INST_FMV_W_X      17'b1010011_1111000_000 // FIX: FMV.W.X → funct7=1111000 (funct5=11110,fmt=00), funct3=000; NOTE: check rs2==00000
+// `define INST_FMV_S_X   22'b1110011_000_000000010001 // WRONG/DUPLICATE alias of FMV.X.W with swapped letters; keep FMV.X.W and remove this alias
+`define INST_FMV_S_X      17'b1010011_1110000_000 // FIX: same encoding as FMV.X.W; prefer FMV.X.W name; NOTE: rs2==00000
+// `define INST_FMV_X_S   22'b1110011_000_000000010101 // WRONG/DUPLICATE alias of FMV.W.X; keep FMV.W.X and remove this alias
+`define INST_FMV_X_S      17'b1010011_1111000_000 // FIX: same encoding as FMV.W.X; prefer FMV.W.X name; NOTE: rs2==00000
+// `define INST_FCVT_W_D  22'b1110011_000_000000000001 // WRONG: SYSTEM opcode; FCVT.W.D is OP-FP; funct5=11000, fmt=01 (.D); rm in funct3; rs2 selects W
+`define INST_FCVT_W_D     17'b1010011_1100001_??? // FIX: FCVT.W.D → funct7=1100001 (funct5=11000,fmt=01), rm=???; NOTE: rs2==00000 (W)
+// `define INST_FCVT_WU_D 22'b1110011_000_000000000101 // WRONG: SYSTEM opcode; same family; rs2 selects WU
+`define INST_FCVT_WU_D    17'b1010011_1100001_??? // FIX: FCVT.WU.D → funct7=1100001, rm=???; NOTE: rs2==00001 (WU)
+// `define INST_FCVT_D_W  22'b1110011_000_000000001001 // WRONG: SYSTEM opcode; FCVT.D.W is OP-FP; funct5=11010, fmt=01 (.D); rm in funct3; rs2 selects W
+`define INST_FCVT_D_W     17'b1010011_1101001_??? // FIX: FCVT.D.W → funct7=1101001 (funct5=11010,fmt=01), rm=???; NOTE: rs2==00000 (W)
+// `define INST_FCVT_D_WU 22'b1110011_000_000000001101 // WRONG: SYSTEM opcode; rs2 selects WU
+`define INST_FCVT_D_WU    17'b1010011_1101001_??? // FIX: FCVT.D.WU → funct7=1101001, rm=???; NOTE: rs2==00001 (WU)
+// `define INST_FMV_X_D   22'b1110011_000_000000010001 // WRONG: SYSTEM opcode; FMV.X.D is OP-FP; funct5=11100, fmt=01 (.D); unary (rs2=0); funct3=000
+`define INST_FMV_X_D      17'b1010011_1110001_000 // FIX: FMV.X.D → funct7=1110001 (funct5=11100,fmt=01), funct3=000; NOTE: rs2==00000
+// `define INST_FMV_D_X   22'b1110011_000_000000010101 // WRONG: SYSTEM opcode; FMV.D.X is OP-FP; funct5=11110, fmt=01 (.D); unary (rs2=0); funct3=000
+`define INST_FMV_D_X      17'b1010011_1111001_000 // FIX: FMV.D.X → funct7=1111001 (funct5=11110,fmt=01), funct3=000; NOTE: rs2==00000
+// `define INST_FMV_D_X   22'b1110011_000_000000010101 // WRONG/DUPLICATE of the previous line; remove duplicate
+`define INST_FMV_D_X_DUP  17'b1010011_1111001_000 // FIX: duplicate encoding; keep only one define name; NOTE: rs2==00000
+// `define INST_FMV_X_D   22'b1110011_000_000000010001 // WRONG/DUPLICATE of FMV_X_D above; remove duplicate
+`define INST_FMV_X_D_DUP  17'b1010011_1110001_000 // FIX: duplicate encoding; keep only one define name; NOTE: rs2==00000
+// `define INST_FCVT_W_Q  22'b1110011_000_000000000001 // WRONG: SYSTEM opcode; FCVT.W.Q is OP-FP; funct5=11000, fmt=11 (.Q); rm in funct3; rs2 selects W
+`define INST_FCVT_W_Q     17'b1010011_1100011_??? // FIX: FCVT.W.Q → funct7=1100011 (funct5=11000,fmt=11), rm=???; NOTE: rs2==00000 (W)
+// `define INST_FCVT_WU_Q 22'b1110011_000_000000000101 // WRONG: SYSTEM opcode; rs2 selects WU
+`define INST_FCVT_WU_Q    17'b1010011_1100011_??? // FIX: FCVT.WU.Q → funct7=1100011, rm=???; NOTE: rs2==00001 (WU)
+// `define INST_FCVT_Q_W  22'b1110011_000_000000001001 // WRONG: SYSTEM opcode; FCVT.Q.W is OP-FP; funct5=11010, fmt=11 (.Q); rm in funct3; rs2 selects W
+`define INST_FCVT_Q_W     17'b1010011_1101011_??? // FIX: FCVT.Q.W → funct7=1101011 (funct5=11010,fmt=11), rm=???; NOTE: rs2==00000 (W)
+// `define INST_FCVT_Q_WU 22'b1110011_000_000000001101 // WRONG: SYSTEM opcode; rs2 selects WU
+`define INST_FCVT_Q_WU    17'b1010011_1101011_??? // FIX: FCVT.Q.WU → funct7=1101011, rm=???; NOTE: rs2==00001 (WU)
+// `define INST_FMV_X_Q   22'b1110011_000_000000010001 // WRONG: SYSTEM opcode; FMV.X.Q is OP-FP; funct5=11100, fmt=11 (.Q); unary (rs2=0); funct3=000
+`define INST_FMV_X_Q      17'b1010011_1110011_000 // FIX: FMV.X.Q → funct7=1110011 (funct5=11100,fmt=11), funct3=000; NOTE: rs2==00000
+// `define INST_FMV_Q_X   22'b1110011_000_000000010101 // WRONG: SYSTEM opcode; FMV.Q.X is OP-FP; funct5=11110, fmt=11 (.Q); unary (rs2=0); funct3=000
+`define INST_FMV_Q_X      17'b1010011_1111011_000 // FIX: FMV.Q.X → funct7=1111011 (funct5=11110,fmt=11), funct3=000; NOTE: rs2==00000
 
-`define INST_FCVT_W_D  22'b1110011_000_000000000001 // D Convert float to int word double
-`define INST_FCVT_WU_D 22'b1110011_000_000000000101 // D Convert float to unsigned int word double
-`define INST_FCVT_D_W  22'b1110011_000_000000001001 // D Convert int word to float double
-`define INST_FCVT_D_WU 22'b1110011_000_000000001101 // D Convert unsigned int word to float double
-`define INST_FMV_X_D   22'b1110011_000_000000010001 // D Move float to integer register (double)
-`define INST_FMV_D_X   22'b1110011_000_000000010101 // D Move integer to float register (double)
-`define INST_FMV_D_X   22'b1110011_000_000000010101 // D Move integer to float register (double)
-`define INST_FMV_X_D   22'b1110011_000_000000010001 // D Move float to integer register (double)
-
-`define INST_FCVT_W_Q  22'b1110011_000_000000000001 // Q Convert quad to int word
-`define INST_FCVT_WU_Q 22'b1110011_000_000000000101 // Q Convert quad to unsigned int word
-`define INST_FCVT_Q_W  22'b1110011_000_000000001001 // Q Convert int word to quad
-`define INST_FCVT_Q_WU 22'b1110011_000_000000001101 // Q Convert unsigned int word to quad
-`define INST_FMV_X_Q   22'b1110011_000_000000010001 // Q Move quad to integer register
-`define INST_FMV_Q_X   22'b1110011_000_000000010101 // Q Move integer to quad register
 
 /////////////////////////////////////
 /// Other (operand)
