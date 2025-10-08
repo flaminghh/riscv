@@ -1,2 +1,1 @@
-Don't modify any code but only show me instructions. 
-
+Please don’t change any code, only show me the instructions.
